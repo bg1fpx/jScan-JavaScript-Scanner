@@ -1,0 +1,198 @@
+﻿<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>jScan</title>
+
+<style type="text/css">
+body { background : whitesmoke;
+       color : black; }
+body, p, td, input, div, a, span { font : 14px/130% Lucida Console, Monospace; }
+p { text-align : center; }
+a:link, a:active, a:visited { color : blue;
+                              text-decoration : none; }
+a:hover { color : red; }
+table { margin : auto; }
+.red { color : red; }
+.blue { color : blue; }
+</style>
+
+<script type="text/javascript">
+function scan() // -------------------- scan --------------------
+{ var valid, from, to, count, min, max, host, port, timeout, id, newline;
+
+  valid = document.jscan.from.value.match(/^\d+.\d+.\d+.\d+$/);
+  if (valid == null)
+  { document.getElementById("message").innerHTML = "<span class='red'>Error: invalid host</span>";
+    return; }
+
+  valid = document.jscan.to.value.match(/^\d+.\d+.\d+.\d+$/);
+  if (valid == null)
+  { document.getElementById("message").innerHTML = "<span class='red'>Error: invalid host</span>";
+    return; }
+
+  valid = document.jscan.port.value.match(/^\d+$/);
+  if (valid == null)
+  { document.getElementById("message").innerHTML = "<span class='red'>Error: invalid port</span>";
+    return; }
+
+  valid = document.jscan.timeout.value.match(/^\d+$/);
+  if (valid == null)
+  { document.getElementById("message").innerHTML = "<span class='red'>Error: invalid timeout</span>";
+    return; }
+
+  valid = document.jscan.interval.value.match(/^\d+$/);
+  if (valid == null)
+  { document.getElementById("message").innerHTML = "<span class='red'>Error: invalid interval</span>";
+    return; }
+
+  from = document.jscan.from.value.split(".");
+  to = document.jscan.to.value.split(".");
+  if (from[0] != to[0] || from[1] != to[1] || from[2] != to[2])
+  { document.getElementById("message").innerHTML = "<span class='red'>Error: invalid host</span>";
+    return; }
+
+  for (count = 0; count <= 3; count++)
+    if (Number(from[count]) > 255 || Number(to[count]) > 255)
+    { document.getElementById("message").innerHTML = "<span class='red'>Error: invalid host</span>";
+      return; }
+
+  min = Number(from[3]);
+  max = Number(to[3]);
+  if (min > max)
+  { document.getElementById("message").innerHTML = "<span class='red'>Error: invalid host</span>";
+    return; }
+
+  if (Number(document.jscan.port.value) > 65535) document.jscan.port.value = "80";
+  if (Number(document.jscan.timeout.value) < 1000) document.jscan.timeout.value = "1000";
+  if (Number(document.jscan.interval.value) == 0) document.jscan.interval.value = "1";
+
+  document.jscan.from.disabled = "disabled";
+  document.jscan.to.disabled = "disabled";
+  document.jscan.port.disabled = "disabled";
+  document.jscan.timeout.disabled = "disabled";
+  document.jscan.interval.disabled = "disabled";
+
+  document.getElementById("_scan").style.display = "none";
+  document.getElementById("_reload").style.display = "inline";
+  document.getElementById("message").innerHTML = "Results: <span class='blue'>[A]ctive</span> <span class='red'>[I]nactive</span>";
+
+  host = from[0] + "." + from[1] + "." + from[2] + ".";
+  port = document.jscan.port.value;
+  timeout = document.jscan.timeout.value;
+
+  count = 0;
+  for (id = min; id <= max; id++)
+  { newline = document.createElement("div");
+    newline.id = id;
+    document.getElementById("result").appendChild(newline);
+    delay(host, id, port, timeout, count);
+    count++; } }
+
+function delay(host, id, port, timeout, count) // -------------------- delay --------------------
+{ var interval = document.jscan.interval.value;
+  setTimeout(function () { var request = new ping(host, id, port, timeout); }, 1000 * Number(interval) * Number(count)); }
+
+function ping(host, id, port, timeout) // -------------------- ping --------------------
+{ var img = new Image();
+
+  // host [YES] image [NO] --> onerror --> active
+  img.onerror = function () { if (! img)
+                                return;
+                              img = undefined;
+                              document.getElementById(id).innerHTML = "<span class='blue'>[A] " + host + id + ":" + port + "</span>" + " <a href='http://" + host + id + ":" + port + "' target='_blank'>[Test]</a>"; }
+
+  // host [YES] image [YES] --> onload --> active
+  img.onload = img.onerror;
+
+  switch (port)
+  { case "80": img.src = "http://" + host + id + "/" + id + ".jpg";
+               break;
+    case "443": img.src = "https://" + host + id + "/" + id + ".jpg";
+                break;
+    default: img.src = "http://" + host + id + ":" + port + "/" + id + ".jpg"; }
+
+  // host [NO] image [NO] --> inactive
+  setTimeout(function () { if (! img)
+                             return;
+                           img = undefined;
+                           document.getElementById(id).innerHTML = "<span class='red'>[I] " + host + id + ":" + port + "</span>"; }, Number(timeout)); }
+
+function randomize() // -------------------- randomize --------------------
+{ return Math.floor(Math.random()*255 + 1); }
+
+function show(message) // -------------------- show --------------------
+{ var showbox = window.open("", "", "width=400, height=400");
+  showbox.document.write("<title>jScan</title>");
+  showbox.document.write("<style type='text/css'>");
+  showbox.document.write("p, a, li { font : 14px/130% Lucida Console, Monospace; }");
+  showbox.document.write("a:link, a:active, a:visited { color : blue; text-decoration : none; }");
+  showbox.document.write("a:hover { color : red; }");
+  showbox.document.write("li { list-style-type : square; }");
+  showbox.document.write("</style>");
+  showbox.document.write(message); }
+
+function about() // -------------------- about --------------------
+{ var message = "<p>jScan 1.4<br />";
+  message += "<a href='http://www.italian.org.cn/app/' target='_blank'>www.italian.org.cn/app/</a><br /><br /><br />";
+  message += "Zhang Hong<br />";
+  message += "<a href='mailto:app@italian.org.cn'>app@italian.org.cn</a>";
+  show(message); }
+
+function help() // -------------------- help --------------------
+{ var message = "<p>jScan is a JavaScript-based network scanner which can consecutively scan hosts and ports with specified timeout and interval.</p>";
+  message += "<p>Before scanning, you need to enter five values:</p>";
+  message += "<p><li>[From]: first host (*.*.*.0-255)</li>";
+  message += "<li>[To]: last host (*.*.*.0-255)</li>";
+  message += "<li>[Port]: port of hosts (80 or 443)</li>";
+  message += "<li>[Timeout]: scanning timeout in milliseconds (1000-9999)</li>";
+  message += "<li>[Interval]: interval between two scannings in seconds (1-99)</li></p>";
+  message += "<p>Click [Scan] to start scanning. A blue host is active, and a red host is inactive.</p>";
+  message += "<p>Click [Test]: to test whether an active host is running now.</p>";
+  message += "<p>Click [Reload] to terminate scanning and reload jScan.</p>";
+  show(message); }
+</script>
+</head>
+
+<body>
+<form name="jscan">
+
+<p>jScan</p>
+
+<p><table border=0 cellpadding=6><tr>
+<td>From<br /><input type="text" name="from" size=15 maxlength=15 /></td>
+<td>To<br /><input type="text" name="to" size=15 maxlength=15 /></td>
+<td>Port<br /><input type="text" name="port" size=5 value=80 maxlength=5 /></td>
+<td>Timeout<br /><input type="text" name="timeout" size=4 value=5000 maxlength=4 /></td>
+<td>Interval<br /><input type="text" name="interval" size=2 value=2 maxlength=2 /></td>
+<td>&nbsp;<br /><input type="button" id="_scan" value="Scan" onclick="scan()" />
+<input type="button" id="_reload" value="Reload" onclick="location.reload(false)" /></td>
+</tr></table></p>
+
+<script type="text/javascript">
+var ip = randomize() + "." + randomize() + "." + randomize() + ".";
+document.jscan.from.value = ip + "0";
+document.jscan.to.value = ip + "255";
+document.getElementById("_reload").style.display = "none";
+</script>
+
+<p><table border=0><tr><td><div id="message"></div></td></tr></table></p>
+
+<p><table border=0><tr><td><div id="result"></div></td></tr></table></p>
+
+<p><a href="javascript:void(0)" onclick="about()">About</a> + <a href="javascript:void(0)" onclick="help()">Help</a></p>
+
+<script type="text/javascript">
+if (! navigator.onLine)
+{ document.jscan.from.disabled = "disabled";
+  document.jscan.to.disabled = "disabled";
+  document.jscan.port.disabled = "disabled";
+  document.jscan.timeout.disabled = "disabled";
+  document.jscan.interval.disabled = "disabled";
+  document.getElementById("_scan").disabled = "disabled";
+  document.getElementById("message").innerHTML = "<span class='red'>jScan can't work because your device isn't online.</span>"; }
+</script>
+
+</form>
+</body>
+</html>
